@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<config>
+    <luceneMatchVersion>8.8.1</luceneMatchVersion>
+    <schemaFactory class="ClassicIndexSchemaFactory"/>
+    <dataDir>/tmp/solr-data/data/${solr.core.name}</dataDir>
+    <directoryFactory name="DirectoryFactory" class="${solr.directoryFactory:solr.NRTCachingDirectoryFactory}"/>
+    <codecFactory class="solr.SchemaCodecFactory">
+        <str name="compressionMode">BEST_SPEED</str>
+    </codecFactory>
+    <indexConfig>
+        <metrics>
+            <majorMergeDocs>100000</majorMergeDocs>
+            <bool name="merge">true</bool>
+            <bool name="mergeDetails">true</bool>
+        </metrics>
+        <ramBufferSizeMB>512</ramBufferSizeMB>
+        <mergePolicyFactory class="org.apache.solr.index.TieredMergePolicyFactory">
+            <int name="maxMergeAtOnce">10</int>
+            <int name="segmentsPerTier">10</int>
+            <int name="maxMergedSegmentMB">5000</int>
+            <int name="deletesPctAllowed">25</int>
+        </mergePolicyFactory>
+        <mergeScheduler class="org.apache.lucene.index.ConcurrentMergeScheduler">
+            <int name="maxThreadCount">10</int>
+            <int name="maxMergeCount">15</int>
+            <bool name="ioThrottle">false</bool>
+        </mergeScheduler>
+        <mergedSegmentWarmer class="org.apache.lucene.index.SimpleMergedSegmentWarmer"/>
+        <writeLockTimeout>5000</writeLockTimeout>
+    </indexConfig>
+    <updateHandler class="solr.DirectUpdateHandler2">
+        <updateLog>
+            <str name="dir">${solr.data.dir:}</str>
+        </updateLog>
+        <autoCommit>
+            <maxTime>180000</maxTime>
+            <openSearcher>false</openSearcher>
+        </autoCommit>
+        <autoSoftCommit>
+            <maxTime>900000</maxTime>
+        </autoSoftCommit>
+    </updateHandler>
+    <query>
+        <slowQueryThresholdMillis>2500</slowQueryThresholdMillis>
+        <maxBooleanClauses>1024</maxBooleanClauses>
+        <filterCache class="solr.search.CaffeineCache" size="4096" initialSize="4096" autowarmCount="1792"/>
+        <queryResultCache class="solr.search.CaffeineCache" size="7168" initialSize="7168" autowarmCount="128"/>
+        <fieldValueCache class="solr.search.CaffeineCache" size="512" initialSize="512" autowarmCount="64"/>
+        <enableLazyFieldLoading>true</enableLazyFieldLoading>
+        <queryResultWindowSize>20</queryResultWindowSize>
+        <queryResultMaxDocsCached>200</queryResultMaxDocsCached>
+        <useColdSearcher>true</useColdSearcher>
+        <maxWarmingSearchers>1</maxWarmingSearchers>
+    </query>
+    <requestDispatcher handleSelect="false">
+        <requestParsers enableStreamBody="true" enableRemoteStreaming="true" multipartUploadLimitInKB="2048000"/>
+        <httpCaching never304="true"/>
+    </requestDispatcher>
+    <requestHandler name="/select" class="solr.SearchHandler">
+        <lst name="defaults">
+            <str name="shards.preference">replica.location:local</str>
+            <str name="echoParams">explicit</str>
+            <str name="df">text</str>
+            <int name="rows">10</int>
+        </lst>
+    </requestHandler>
+    <searchComponent name="spellcheck" class="solr.SpellCheckComponent">
+        <str name="queryAnalyzerFieldType">textSpell</str>
+        <lst name="spellchecker">
+            <str name="name">default</str>
+            <str name="field">name</str>
+            <str name="classname">solr.DirectSolrSpellChecker</str>
+            <str name="distanceMeasure">internal</str>
+            <float name="accuracy">0.5</float>
+            <float name="maxQueryFrequency">0.01</float>
+            <int name="maxEdits">2</int>
+            <int name="minPrefix">1</int>
+            <int name="maxInspections">5</int>
+            <int name="minQueryLength">4</int>
+        </lst>
+        <lst name="spellchecker">
+            <str name="name">wordbreak</str>
+            <str name="classname">solr.WordBreakSolrSpellChecker</str>
+            <str name="field">name</str>
+            <str name="combineWords">true</str>
+            <str name="breakWords">true</str>
+            <int name="maxChanges">10</int>
+        </lst>
+    </searchComponent>
+    <searchComponent name="tvComponent" class="solr.TermVectorComponent"/>
+    <searchComponent name="terms" class="solr.TermsComponent"/>
+    <searchComponent class="solr.HighlightComponent" name="highlight">
+        <highlighting>
+            <fragmenter name="gap" default="true" class="solr.highlight.GapFragmenter">
+                <lst name="defaults">
+                    <int name="hl.fragsize">100</int>
+                </lst>
+            </fragmenter>
+            <fragmenter name="regex" class="solr.highlight.RegexFragmenter">
+                <lst name="defaults">
+                    <int name="hl.fragsize">70</int>
+                    <float name="hl.regex.slop">0.5</float>
+                    <str name="hl.regex.pattern">[-\w ,/\n\"']{20,200}</str>
+                </lst>
+            </fragmenter>
+            <formatter name="html" default="true" class="solr.highlight.HtmlFormatter">
+                <lst name="defaults">
+                    <str name="hl.simple.pre"><![CDATA[<em>]]></str>
+                    <str name="hl.simple.post"><![CDATA[</em>]]></str>
+                </lst>
+            </formatter>
+            <encoder name="html" class="solr.highlight.HtmlEncoder"/>
+            <fragListBuilder name="simple" class="solr.highlight.SimpleFragListBuilder"/>
+            <fragListBuilder name="single" class="solr.highlight.SingleFragListBuilder"/>
+            <fragListBuilder name="weighted" default="true" class="solr.highlight.WeightedFragListBuilder"/>
+            <fragmentsBuilder name="default" default="true" class="solr.highlight.ScoreOrderFragmentsBuilder"/>
+            <fragmentsBuilder name="colored" class="solr.highlight.ScoreOrderFragmentsBuilder">
+                <lst name="defaults">
+                    <str name="hl.tag.pre"><![CDATA[
+               <b style="background:yellow">,<b style="background:lawgreen">,
+               <b style="background:aquamarine">,<b style="background:magenta">,
+               <b style="background:palegreen">,<b style="background:coral">,
+               <b style="background:wheat">,<b style="background:khaki">,
+               <b style="background:lime">,<b style="background:deepskyblue">]]></str>
+                    <str name="hl.tag.post"><![CDATA[</b>]]></str>
+                </lst>
+            </fragmentsBuilder>
+            <boundaryScanner name="default" default="true" class="solr.highlight.SimpleBoundaryScanner">
+                <lst name="defaults">
+                    <str name="hl.bs.maxScan">10</str>
+                    <str name="hl.bs.chars">.,!?
+
+                    </str>
+                </lst>
+            </boundaryScanner>
+            <boundaryScanner name="breakIterator" class="solr.highlight.BreakIteratorBoundaryScanner">
+                <lst name="defaults">
+                    <str name="hl.bs.type">WORD</str>
+                    <str name="hl.bs.language">en</str>
+                    <str name="hl.bs.country">US</str>
+                </lst>
+            </boundaryScanner>
+        </highlighting>
+    </searchComponent>
+    <queryResponseWriter name="velocity" class="solr.VelocityResponseWriter" startup="lazy"/>
+    <queryResponseWriter name="xslt" class="solr.XSLTResponseWriter">
+        <int name="xsltCacheLifetimeSeconds">5</int>
+    </queryResponseWriter>
+</config>
