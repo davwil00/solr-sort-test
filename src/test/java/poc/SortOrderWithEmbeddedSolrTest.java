@@ -12,7 +12,6 @@ import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.core.CoreContainer;
 import org.apache.solr.core.NodeConfig;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.spatial4j.distance.DistanceUtils;
 
@@ -76,11 +75,11 @@ public class SortOrderWithEmbeddedSolrTest {
         query.set("sfield", "LOCATION_MULTI");
         query.setSort(
                 "min(" +
-                    "def(if(" +
+                    "if(" +
                         "lte(20,geodist(LOCATION_SINGLE,1.1,2.2))," +
                         "13," +
                         "15" +
-                    "), 0.0)," +
+                    ")," +
                     "13," +
                     "27" +
                 ")",
@@ -107,14 +106,14 @@ public class SortOrderWithEmbeddedSolrTest {
         query.set("sfield", "LOCATION_MULTI");
         query.setSort(
                 "min(" +
-                        "def(if(" +
+                    "if(" +
                         "lte(20,geodist())," +
-                        "13," +
-                        "15" +
-                        "), 0.0)," +
+                            "13," +
+                            "15" +
+                        ")," +
                         "13," +
                         "27" +
-                        ")",
+                    ")",
                 SolrQuery.ORDER.asc);
 
         QueryResponse qRespTest = server.query(query);
